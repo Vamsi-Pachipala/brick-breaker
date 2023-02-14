@@ -1,0 +1,15 @@
+import javax.swing.*;
+
+public class Main {
+    public static void main(String[] args)
+    {
+        GamePlay game=new GamePlay();
+        JFrame frame=new JFrame();
+        frame.setBounds(10,10,700,600);
+        frame.setResizable(false);
+        frame.setVisible(true);
+        frame.setTitle("Brick_Breaker");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.add(game);
+    }
+}
