@@ -1,0 +1,167 @@
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Random;
+import java.util.Scanner;
+
+public class TicketBooking
+{
+    private static final   String url = "jdbc:mysql://localhost:3306/casestudy";
+
+    public static void main(String[] args) {
+        try {
+            Connection connection = DriverManager.getConnection(url,"root","Vamsi@243");
+            Scanner scanner = new Scanner(System.in);
+            int option;
+            do {
+                System.out.println("1. Book Ticket");
+                System.out.println("2. Check Booking Details");
+                System.out.println("3. Update Booking Details");
+                System.out.println("4. Exit");
+                System.out.print("Enter your option: ");
+                option = scanner.nextInt();
+
+                switch (option) {
+                    case 1:
+                        bookTicket(connection);
+                        break;
+                    case 2:
+                        checkBookingDetails(connection);
+                        break;
+                    case 3:
+                        updateBookingDetails(connection);
+                        break;
+                    case 4:
+                        System.out.println("Exiting...");
+                        break;
+                    default:
+                        System.out.println("Invalid option. Please try again.");
+                }
+            } while (option != 4);
+            scanner.close();
+            connection.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    private static void bookTicket(Connection connection) throws SQLException {
+        String[] arr={"New","Confirm","Hold"};
+        Scanner scanner = new Scanner(System.in);
+        Random ran=new Random();
+        String passengerId = Integer.toString((int)(Math.random()*9999999));
+        String pnrNo = Integer.toString((int)(Math.random()*9999999));
+        String travelDate = getInput(scanner, "Travel Date (dd/mm/yyyy): ");
+        String source = getInput(scanner, "Source: ");
+        String destination = getInput(scanner, "Destination: ");
+        String status = arr[ran.nextInt(arr.length)];
+        String seatPreference = getInput(scanner, "Seat Preference (Middle/Aisle/Window): ");
+        String mealPreference = getInput(scanner, "Meal Preference: ");
+        insertBookingDetails(connection, passengerId, pnrNo, travelDate, source, destination, status, seatPreference, mealPreference);
+        System.out.println("Ticket Booked successfully, Happy Journey...passenegerId is "+passengerId);
+    }
+    private static void checkBookingDetails(Connection connection) throws SQLException {
+        Scanner scanner = new Scanner(System.in);
+
+        String passengerId = getInput(scanner, "Passenger ID: ");
+
+        String sql = "SELECT * FROM Booking WHERE passenger_id = ?";
+        PreparedStatement statement = connection.prepareStatement(sql);
+        statement.setString(1, passengerId);
+
+        ResultSet resultSet = statement.executeQuery();
+        if (resultSet.next()) {
+            System.out.println("Booking Details:");
+            System.out.println("Passenger ID: " + resultSet.getString("passenger_id"));
+            System.out.println("PNR No: "+ resultSet.getString("pnr_no"));
+            System.out.println("Travel Date: " + resultSet.getString("travel_date"));
+            System.out.println("Source: " + resultSet.getString("source"));
+            System.out.println("Destination: " + resultSet.getString("destination"));
+            System.out.println("Status: " + resultSet.getString("status"));
+            System.out.println("Seat Preference: " + resultSet.getString("seat_preference"));
+            System.out.println("Meal Preference: " + resultSet.getString("meal_preference"));
+        } else {
+            System.out.println("Booking not found for Passenger ID: " + passengerId);
+        }
+
+        resultSet.close();
+        statement.close();
+    }
+    private static void updateBookingDetails(Connection connection) throws SQLException {
+        Scanner scanner = new Scanner(System.in);
+
+        String passengerId = getInput(scanner, "Passenger ID: ");
+        String sql = "SELECT * FROM Booking WHERE passenger_id = ?";
+        PreparedStatement selectStatement = connection.prepareStatement(sql);
+        selectStatement.setString(1, passengerId);
+        ResultSet resultSet = selectStatement.executeQuery();
+        if (resultSet.next()) {
+            System.out.println("Current Booking Details:");
+            System.out.println("Passenger ID: " + resultSet.getString("passenger_id"));
+            System.out.println("PNR No: " + resultSet.getString("pnr_no"));
+            System.out.println("Travel Date: " + resultSet.getString("travel_date"));
+            System.out.println("Source: " + resultSet.getString("source"));
+            System.out.println("Destination: " + resultSet.getString("destination"));
+            System.out.println("Status: " + resultSet.getString("status"));
+            System.out.println("Seat Preference: " + resultSet.getString("seat_preference"));
+            System.out.println("Meal Preference: " + resultSet.getString("meal_preference"));
+            String pnrNo = getInput(scanner, "New PNR No (press enter to keep current value): ", resultSet.getString("pnr_no"));
+            String travelDate = getInput(scanner, "New Travel Date (dd/mm/yyyy): ");
+            String source = getInput(scanner, "New Source: ");
+            String destination = getInput(scanner, "New Destination: ");
+            String status = getInput(scanner, "New Status (New/Confirm/Hold): ");
+            String seatPreference = getInput(scanner, "New Seat Preference (Middle/Aisle): ");
+            String mealPreference = getInput(scanner, "New Meal Preference: ");
+            String updateSql = "UPDATE Booking SET pnr_no = ?, travel_date = ?, source = ?, destination = ?, status = ?, seat_preference = ?, meal_preference = ? WHERE passenger_id = ?";
+            PreparedStatement updateStatement = connection.prepareStatement(updateSql);
+            updateStatement.setString(1, pnrNo);
+            updateStatement.setString(2, travelDate);
+            updateStatement.setString(3, source);
+            updateStatement.setString(4, destination);
+            updateStatement.setString(5, status);
+            updateStatement.setString(6, seatPreference);
+            updateStatement.setString(7, mealPreference);
+            updateStatement.setString(8, passengerId);
+            updateStatement.executeUpdate();
+            updateStatement.close();
+
+            System.out.println("Booking details updated successfully.");
+        } else {
+            System.out.println("Booking not found for Passenger ID: " + passengerId);
+        }
+
+        resultSet.close();
+        selectStatement.close();
+    }
+
+    private static String getInput(Scanner scanner, String message)
+    {
+        System.out.print(message);
+        return scanner.nextLine();
+    }
+
+    private static String getInput(Scanner scanner, String message, String defaultValue)
+    {
+        System.out.print(message);
+        String input = scanner.nextLine();
+        return input.isEmpty() ? defaultValue : input;
+    }
+
+    private static void insertBookingDetails(Connection connection, String passengerId, String pnrNo, String travelDate,
+                                             String source, String destination, String status, String seatPreference, String mealPreference) throws SQLException {
+        String sql= "INSERT INTO booking (passenger_id, pnr_no, travel_date, source, destination, status, seat_preference, meal_preference) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        PreparedStatement statement = connection.prepareStatement(sql);
+        statement.setString(1, passengerId);
+        statement.setString(2, pnrNo);
+        statement.setString(3, travelDate);
+        statement.setString(4, source);
+        statement.setString(5, destination);
+        statement.setString(6, status);
+        statement.setString(7, seatPreference);
+        statement.setString(8, mealPreference);
+        statement.executeUpdate();
+        statement.close();
+    }
+}
